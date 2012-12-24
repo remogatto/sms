@@ -6,7 +6,7 @@ in this language.
 
 # Quick start
 
-Installing and starting GoSpeccy with Go1 is simple:
+Installing and starting GoSpeccy with Go is simple:
 
     go get -v github.com/remogatto/sms/
     ./sms game.sms
@@ -44,12 +44,11 @@ course.
 
     Host computer   ZX Spectrum
     ---------------------------
-    CTRL            SYMBOL SHIFT
-    LEFT SHIFT      CAPS SHIFT
-    [a-z0-9]        [A-Z0-9]
-    SPACE           SPACE
+    Arrows          Joypad directions
+    X               Fire 1
+    Z               Fire 2
 
-For more info about key bindings see file <tt>spectrum/keyboard.go</tt>
+For more info about key bindings see file <tt>input.go</tt>
 
 # Proprietary games
 
