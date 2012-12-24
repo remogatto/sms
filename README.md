@@ -6,7 +6,7 @@ in this language.
 
 # Quick start
 
-Installing and starting GoSpeccy with Go is simple:
+Installing and starting SMS with Go is simple:
 
     go get -v github.com/remogatto/sms/
     ./sms game.sms
