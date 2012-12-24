@@ -42,8 +42,8 @@ course.
 
 # Key bindings
 
-    Host computer   ZX Spectrum
-    ---------------------------
+    Host computer   Sega Master System
+    ----------------------------------
     Arrows          Joypad directions
     X               Fire 1
     Z               Fire 2
@@ -66,7 +66,7 @@ for the Sega Master System on the Internet.
 
 * andrea.fazzi@alcacoop.it
 * [Twitter](http://twitter.com/remogatto)
-* (Google+)[https://plus.google.com/u/0/100271912081202470197/posts/p/pub]
+* [Google+](https://plus.google.com/u/0/100271912081202470197/posts/p/pub)
 
 # License
 
