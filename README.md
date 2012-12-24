@@ -4,6 +4,7 @@ SMS is a free Sega Master System emulator written in
 [Go](http://golang.org). I think it's the first SMS emulator written
 in this language.
 
+![Alex Kidd](https://sites.google.com/a/alcacoop.it/remogatto/alex.png)
 # Quick start
 
 Installing and starting SMS with Go is simple:
