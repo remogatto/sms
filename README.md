@@ -24,7 +24,7 @@ The primary source of inspiration for SMS was
 Javascript SMS emulator.
 
 If you like this project, please star it on
-[github](http://github.com/remogatto/sms)! Bug reports and testing are
+[GitHub](http://github.com/remogatto/sms)! Bug reports and testing are
 also appreciated! And don't forget to fork and send patches, of
 course.
 
