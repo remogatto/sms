@@ -101,7 +101,7 @@ func (l *commandLoop) Run() {
 }
 
 func usage() {
-	fmt.Fprintf(os.Stderr, "SMS - A Sega Master System Emulator written in Go\n\n")
+	fmt.Fprintf(os.Stderr, "SMS - A Sega Master System emulator written in Go\n\n")
 	fmt.Fprintf(os.Stderr, "Usage:\n\n")
 	fmt.Fprintf(os.Stderr, "\tsms [options] game.sms\n\n")
 	fmt.Fprintf(os.Stderr, "Options are:\n\n")
