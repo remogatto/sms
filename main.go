@@ -10,18 +10,19 @@ import (
 	"time"
 )
 
+// emulatorLoop sends a cmdRenderFrame command to the rendering backend
+// (displayLoop) each 1/50 second.
 type emulatorLoop struct {
 	ticker           *time.Ticker
 	sms              *SMS
 	pause, terminate chan int
-	displayLoop      DisplayLoop
 }
 
+// newEmulatorLoop returns a new emulatorLoop instance.
 func newEmulatorLoop(displayLoop DisplayLoop) *emulatorLoop {
 	emulatorLoop := &emulatorLoop{
 		ticker:      time.NewTicker(time.Duration(1e9 / 50)), // 50 Hz
 		sms:         newSMS(displayLoop),
-		displayLoop: displayLoop,
 		pause:       make(chan int),
 		terminate:   make(chan int),
 	}
@@ -32,14 +33,21 @@ func newEmulatorLoop(displayLoop DisplayLoop) *emulatorLoop {
 	return emulatorLoop
 }
 
+// Pause returns the pause channel of the loop.
+// If a value is sent to this channel, the loop will be paused.
 func (l *emulatorLoop) Pause() chan int {
 	return l.pause
 }
 
+// Terminate returns the terminate channel of the loop.
+// If a value is sent to this channel, the loop will be terminated.
 func (l *emulatorLoop) Terminate() chan int {
 	return l.terminate
 }
 
+// Run runs emulatorLoop.
+// The loop sends a cmdRenderFrame command to the sms command channel
+// each time it receives a value from the ticker.
 func (l *emulatorLoop) Run() {
 	for {
 		select {
@@ -54,12 +62,15 @@ func (l *emulatorLoop) Run() {
 	}
 }
 
+// commandLoop receives commands from the sms command channel and
+// forward them to the emulatorLoop or to the displayLoop.
 type commandLoop struct {
 	pause, terminate chan int
 	emulatorLoop     *emulatorLoop
 	displayLoop      DisplayLoop
 }
 
+// newCommandLoop returns a commandLoop instance.
 func newCommandLoop(emulatorLoop *emulatorLoop, displayLoop DisplayLoop) *commandLoop {
 	return &commandLoop{
 		emulatorLoop: emulatorLoop,
@@ -69,14 +80,20 @@ func newCommandLoop(emulatorLoop *emulatorLoop, displayLoop DisplayLoop) *comman
 	}
 }
 
+// Pause returns the pause channel of the loop.
+// If a value is sent to this channel, the loop will be paused.
 func (l *commandLoop) Pause() chan int {
 	return l.pause
 }
 
+// Terminate returns the terminate channel of the loop.
+// If a value is sent to this channel, the loop will be terminated.
 func (l *commandLoop) Terminate() chan int {
 	return l.terminate
 }
 
+// Run runs the commandLoop.
+// The loop waits for commands sent to sms.command channel.
 func (l *commandLoop) Run() {
 	for {
 		select {
@@ -100,6 +117,7 @@ func (l *commandLoop) Run() {
 	}
 }
 
+// usage shows sms executable usage.
 func usage() {
 	fmt.Fprintf(os.Stderr, "SMS - A Sega Master System Emulator written in Go\n\n")
 	fmt.Fprintf(os.Stderr, "Usage:\n\n")
@@ -138,8 +156,8 @@ func main() {
 
 	application.Register("Emulator loop", emulatorLoop)
 	application.Register("Command loop", commandLoop)
-	application.Register("SDL backend loop", sdlLoop)
-	application.Register("Input loop", inputLoop)
+	application.Register("SDL render loop", sdlLoop)
+	application.Register("SDL input loop", inputLoop)
 
 	exitCh := make(chan bool)
 	application.Run(exitCh)

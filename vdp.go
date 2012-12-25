@@ -205,7 +205,7 @@ func (vdp *vdp) rasterizeLine(line int) {
 	pixelOffset := int(vdp.regs[8]) // * 4
 	nameAddr := ((int(vdp.regs[2]) << 10) & 0x3800) + (effectiveLine>>3)*64
 	yMod := effectiveLine & 7
-	//	borderIndex := 16 + (vdp.regs[7] & 0xf)
+	borderIndex := 16 + (vdp.regs[7] & 0xf)
 
 	for i := 0; i < 32; i++ {
 		tileData := int(vdp.vram[nameAddr+i*2]) | (int(vdp.vram[nameAddr+i*2+1]) << 8)
@@ -248,8 +248,6 @@ func (vdp *vdp) rasterizeLine(line int) {
 					vdp.status |= 0x20
 					break
 				}
-				// color := RGBA{vdp.paletteR[16 + index], vdp.paletteG[16 + index], vdp.paletteB[16 + index], 0}
-				// *(*uint32)(unsafe.Pointer(baseSurfaceAddr + uintptr(pixelOffset))) = color.Value32()
 				vdp.displayData[lineAddr+pixelOffset] = 16 + index
 				writtenTo = true
 			}
@@ -265,6 +263,7 @@ func (vdp *vdp) rasterizeLine(line int) {
 	if (vdp.regs[0] & (1 << 5)) != 0 {
 		// Blank out left hand column.
 		for i := 0; i < 8; i++ {
+			vdp.displayData[lineAddr + i] = borderIndex
 			// imageDataData[lineAddr + i * 4] = paletteR[borderIndex]
 			// imageDataData[lineAddr + i * 4 + 1] = paletteG[borderIndex]
 			// imageDataData[lineAddr + i * 4 + 2] = paletteB[borderIndex]
