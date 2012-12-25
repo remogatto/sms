@@ -120,13 +120,13 @@ type sdl2xScreen struct {
 }
 
 func newSDL2xScreen(fullScreen bool) *sdl2xScreen {
-	sdlMode := sdl.SWSURFACE
+	sdlMode := uint32(sdl.SWSURFACE)
 	if fullScreen {
 		application.Logf("%s", "Activate fullscreen mode")
 		sdlMode = sdl.FULLSCREEN
 		sdl.ShowCursor(sdl.DISABLE)
 	}
-	screenSurface := &sdlSurface{sdl.SetVideoMode(SCREEN_WIDTH*2, SCREEN_HEIGHT*2, 32, uint32(sdlMode))}
+	screenSurface := &sdlSurface{sdl.SetVideoMode(SCREEN_WIDTH*2, SCREEN_HEIGHT*2, 32, sdlMode)}
 	if screenSurface.surface == nil {
 		log.Printf("%s", sdl.GetError())
 		application.Exit()
