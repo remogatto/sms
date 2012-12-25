@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/remogatto/gospeccy/src/z80"
+	"github.com/remogatto/z80"
 )
 
 type Memory struct {

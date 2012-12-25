@@ -263,10 +263,7 @@ func (vdp *vdp) rasterizeLine(line int) {
 	if (vdp.regs[0] & (1 << 5)) != 0 {
 		// Blank out left hand column.
 		for i := 0; i < 8; i++ {
-			vdp.displayData[lineAddr + i] = borderIndex
-			// imageDataData[lineAddr + i * 4] = paletteR[borderIndex]
-			// imageDataData[lineAddr + i * 4 + 1] = paletteG[borderIndex]
-			// imageDataData[lineAddr + i * 4 + 2] = paletteB[borderIndex]
+			vdp.displayData[lineAddr+i] = borderIndex
 		}
 	}
 }

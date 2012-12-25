@@ -21,10 +21,10 @@ type emulatorLoop struct {
 // newEmulatorLoop returns a new emulatorLoop instance.
 func newEmulatorLoop(displayLoop DisplayLoop) *emulatorLoop {
 	emulatorLoop := &emulatorLoop{
-		ticker:      time.NewTicker(time.Duration(1e9 / 50)), // 50 Hz
-		sms:         newSMS(displayLoop),
-		pause:       make(chan int),
-		terminate:   make(chan int),
+		ticker:    time.NewTicker(time.Duration(1e9 / 50)), // 50 Hz
+		sms:       newSMS(displayLoop),
+		pause:     make(chan int),
+		terminate: make(chan int),
 	}
 	if flag.Arg(0) == "" {
 		return nil

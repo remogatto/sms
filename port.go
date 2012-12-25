@@ -1,5 +1,9 @@
 package main
 
+import (
+	"github.com/remogatto/application"
+)
+
 type Ports struct {
 	sms *SMS
 }
@@ -71,6 +75,8 @@ func (p *Ports) WritePortInternal(address uint16, b byte, contend bool) {
 		// default:
 		// 	console.log('IO port ' + hexbyte(addr) + ' = ' + val);
 		// 	break;
+	default:
+		application.Logf("Write to IO port %x\n", address)
 	}
 }
 

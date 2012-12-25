@@ -2,7 +2,7 @@ package main
 
 import (
 	"github.com/remogatto/application"
-	"github.com/remogatto/gospeccy/src/z80"
+	"github.com/remogatto/z80"
 )
 
 var hblankcount = 0
@@ -55,6 +55,7 @@ func newSMS(displayLoop DisplayLoop) *SMS {
 }
 
 func (sms *SMS) loadRom(fileName string) {
+	application.Logf("Reading from file %s", fileName)
 	data, err := readROM(fileName)
 	if err != nil {
 		panic(err)
@@ -63,6 +64,7 @@ func (sms *SMS) loadRom(fileName string) {
 	// Calculate number of pages from file size and create array appropriately
 	numROMBanks := size / PAGE_SIZE
 	sms.memory.romBanks = make([][]byte, numROMBanks)
+	application.Logf("Found %d ROM banks", numROMBanks)
 	for i := 0; i < numROMBanks; i++ {
 		sms.memory.romBanks[i] = make([]byte, PAGE_SIZE)
 		// Read file into pages array
