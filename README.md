@@ -54,7 +54,7 @@ For more info about key bindings see file <tt>input.go</tt>
 # Proprietary games
 
 Generally, SMS games are protected by copyright so none of them
-is included in GoSpeccy. However, it is possible to find tons of games
+is included with the emulator. However, it is possible to find tons of games
 for the Sega Master System on the Internet.
 
 # Credits
