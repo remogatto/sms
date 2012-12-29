@@ -1,6 +1,6 @@
 # SMS - A concurrent Sega Master System emulator
 
-SMS is a free Sega Master System emulator written in
+SMS is a free and open-source (MIT licensed) Sega Master System emulator written in
 [Go](http://golang.org). I think it's the first Sega Master System emulator written
 in this language.
 
