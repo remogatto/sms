@@ -4,27 +4,42 @@ import (
 	"flag"
 	"fmt"
 	"github.com/0xe2-0x9a-0x9b/Go-SDL/sdl"
+	"github.com/remogatto/z80"
 	"github.com/remogatto/application"
 	"log"
 	"os"
 	"time"
 )
 
+// drainTicker drains the remaining ticks from the given tick.
+func drainTicker(ticker *time.Ticker) {
+loop:
+	for {
+		select {
+		case <-ticker.C:
+		default:
+			break loop
+		}
+	}
+}
+
 // emulatorLoop sends a cmdRenderFrame command to the rendering backend
 // (displayLoop) each 1/50 second.
 type emulatorLoop struct {
-	ticker           *time.Ticker
-	sms              *SMS
-	pause, terminate chan int
+	ticker            *time.Ticker
+	sms               *SMS
+	pause, terminate  chan int
+	pauseEmulation    chan int
 }
 
 // newEmulatorLoop returns a new emulatorLoop instance.
 func newEmulatorLoop(displayLoop DisplayLoop) *emulatorLoop {
 	emulatorLoop := &emulatorLoop{
-		ticker:    time.NewTicker(time.Duration(1e9 / 50)), // 50 Hz
-		sms:       newSMS(displayLoop),
-		pause:     make(chan int),
-		terminate: make(chan int),
+		ticker:         time.NewTicker(time.Duration(1e9 / 50)), // 50 Hz
+		sms:            newSMS(displayLoop),
+		pause:          make(chan int),
+		terminate:      make(chan int),
+		pauseEmulation: make(chan int),
 	}
 	if flag.Arg(0) == "" {
 		return nil
@@ -58,6 +73,14 @@ func (l *emulatorLoop) Run() {
 			l.terminate <- 0
 		case <-l.ticker.C:
 			l.sms.command <- cmdRenderFrame{}
+		case <-l.pauseEmulation:
+			if l.sms.paused {
+				l.ticker.Stop()
+				drainTicker(l.ticker)
+			} else {
+				l.ticker = time.NewTicker(time.Duration(1e9 / 50))
+			}
+			l.pauseEmulation <- 0
 		}
 	}
 }
@@ -112,6 +135,34 @@ func (l *commandLoop) Run() {
 
 			case cmdJoypadEvent:
 				l.emulatorLoop.sms.joypad(cmd.value, cmd.event)
+
+			case cmdPauseEmulation:
+				l.emulatorLoop.pauseEmulation <- 0
+ 				<-l.emulatorLoop.pauseEmulation
+				cmd.paused <- l.emulatorLoop.sms.paused
+				
+			case cmdShowCurrentInstruction:
+				
+				prevAddr := z80.PreviousInstruction(l.emulatorLoop.sms.memory, l.emulatorLoop.sms.cpu.PC())
+				res, address, shift := z80.Disassemble(l.emulatorLoop.sms.memory, prevAddr, 0)
+				if res != "shift " {
+					application.Logf("0x%04x %s\n", l.emulatorLoop.sms.cpu.PC(), res)
+				}
+
+
+				res, address, shift = z80.Disassemble(l.emulatorLoop.sms.memory, l.emulatorLoop.sms.cpu.PC(), 0)
+				if res != "shift " {
+					application.Logf("0x%04x %s\n", l.emulatorLoop.sms.cpu.PC(), res)
+				}
+				for i := 0; i < 20; i++ {
+					oldAddress := address
+					res, address, shift = z80.Disassemble(l.emulatorLoop.sms.memory, address, shift)
+					if res != "shift " {
+						application.Logf("0x%04x %s\n", oldAddress, res)
+					} 
+//					address++
+				}
+				
 			}
 		}
 	}

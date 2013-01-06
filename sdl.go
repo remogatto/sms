@@ -238,7 +238,6 @@ func (l *sdlLoop) Run() {
 			l.render(data)
 
 		case value := <-l.paletteValue:
-			println(value.index, value.r, value.g, value.b)
 			l.paletteR[value.index] = value.r
 			l.paletteG[value.index] = value.g
 			l.paletteB[value.index] = value.b

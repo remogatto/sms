@@ -26,12 +26,17 @@ type cmdJoypadEvent struct {
 	event byte
 }
 
+type cmdPauseEmulation struct{ paused chan bool }
+
+type cmdShowCurrentInstruction struct{}
+
 type SMS struct {
 	cpu      *z80.Z80
 	memory   *Memory
 	vdp      *vdp
 	ports    *Ports
 	joystick int
+	paused   bool
 	command  chan interface{}
 }
 
