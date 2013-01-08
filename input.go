@@ -51,7 +51,7 @@ func (l *inputLoop) Run() {
 				application.Exit()
 			case sdl.KeyboardEvent:
 				keyName := sdl.GetKeyName(sdl.Key(e.Keysym.Sym))
-				application.Logf("%d: %s\n", e.Keysym.Sym, keyName)
+				application.Debugf("%d: %s\n", e.Keysym.Sym, keyName)
 				if e.Type == sdl.KEYDOWN {
 					l.sms.command <- cmdJoypadEvent{keyMap[keyName], JOYPAD_DOWN}
 				} else if e.Type == sdl.KEYUP {

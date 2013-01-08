@@ -140,27 +140,15 @@ func (l *commandLoop) Run() {
 				l.emulatorLoop.pauseEmulation <- 0
  				<-l.emulatorLoop.pauseEmulation
 				cmd.paused <- l.emulatorLoop.sms.paused
-				
-			case cmdShowCurrentInstruction:
-				
-				prevAddr := z80.PreviousInstruction(l.emulatorLoop.sms.memory, l.emulatorLoop.sms.cpu.PC())
-				res, address, shift := z80.Disassemble(l.emulatorLoop.sms.memory, prevAddr, 0)
-				if res != "shift " {
-					application.Logf("0x%04x %s\n", l.emulatorLoop.sms.cpu.PC(), res)
-				}
-
-
-				res, address, shift = z80.Disassemble(l.emulatorLoop.sms.memory, l.emulatorLoop.sms.cpu.PC(), 0)
-				if res != "shift " {
-					application.Logf("0x%04x %s\n", l.emulatorLoop.sms.cpu.PC(), res)
-				}
-				for i := 0; i < 20; i++ {
-					oldAddress := address
-					res, address, shift = z80.Disassemble(l.emulatorLoop.sms.memory, address, shift)
-					if res != "shift " {
-						application.Logf("0x%04x %s\n", oldAddress, res)
-					} 
-//					address++
+				if application.Verbose && l.emulatorLoop.sms.paused {
+					instructions := z80.DisassembleN(l.emulatorLoop.sms.memory, l.emulatorLoop.sms.cpu.PC(), 10)
+					for line, instr := range instructions {
+						if line == 0 {
+							application.Logf("=>>\t0x%04x %s\n", instr.Address, instr.Mnemonic)
+							continue
+						}
+						application.Logf("\t0x%04x %s\n", instr.Address, instr.Mnemonic)
+					}
 				}
 				
 			}
@@ -179,6 +167,7 @@ func usage() {
 
 func main() {
 	verbose := flag.Bool("verbose", false, "verbose mode")
+	debug := flag.Bool("debug", false, "debug mode")
 	fullScreen := flag.Bool("fullscreen", false, "go fullscreen")
 	help := flag.Bool("help", false, "Show usage")
 	flag.Usage = usage
@@ -190,6 +179,7 @@ func main() {
 	}
 
 	application.Verbose = *verbose
+	application.Debug = *debug
 
 	if sdl.Init(sdl.INIT_EVERYTHING) != 0 {
 		log.Fatal(sdl.GetError())
