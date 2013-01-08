@@ -4,8 +4,8 @@ import (
 	"flag"
 	"fmt"
 	"github.com/0xe2-0x9a-0x9b/Go-SDL/sdl"
-	"github.com/remogatto/z80"
 	"github.com/remogatto/application"
+	"github.com/remogatto/z80"
 	"log"
 	"os"
 	"time"
@@ -26,10 +26,10 @@ loop:
 // emulatorLoop sends a cmdRenderFrame command to the rendering backend
 // (displayLoop) each 1/50 second.
 type emulatorLoop struct {
-	ticker            *time.Ticker
-	sms               *SMS
-	pause, terminate  chan int
-	pauseEmulation    chan int
+	ticker           *time.Ticker
+	sms              *SMS
+	pause, terminate chan int
+	pauseEmulation   chan int
 }
 
 // newEmulatorLoop returns a new emulatorLoop instance.
@@ -138,7 +138,7 @@ func (l *commandLoop) Run() {
 
 			case cmdPauseEmulation:
 				l.emulatorLoop.pauseEmulation <- 0
- 				<-l.emulatorLoop.pauseEmulation
+				<-l.emulatorLoop.pauseEmulation
 				cmd.paused <- l.emulatorLoop.sms.paused
 				if application.Verbose && l.emulatorLoop.sms.paused {
 					instructions := z80.DisassembleN(l.emulatorLoop.sms.memory, l.emulatorLoop.sms.cpu.PC(), 10)
@@ -150,7 +150,7 @@ func (l *commandLoop) Run() {
 						application.Logf("\t0x%04x %s\n", instr.Address, instr.Mnemonic)
 					}
 				}
-				
+
 			}
 		}
 	}

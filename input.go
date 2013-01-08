@@ -60,13 +60,13 @@ func (l *inputLoop) Run() {
 				if e.Type == sdl.KEYDOWN && keyName == "p" {
 					paused := make(chan bool)
 					l.sms.paused = !l.sms.paused
-					l.sms.command <- cmdPauseEmulation{ paused }
+					l.sms.command <- cmdPauseEmulation{paused}
 					<-paused
 				}
 				if e.Type == sdl.KEYDOWN && keyName == "d" {
 					l.sms.paused = true
 					paused := make(chan bool)
-					l.sms.command <- cmdPauseEmulation{ paused }
+					l.sms.command <- cmdPauseEmulation{paused}
 					<-paused
 					l.sms.command <- cmdShowCurrentInstruction{}
 				}
