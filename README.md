@@ -10,7 +10,7 @@ in this language.
 Installing and starting SMS with Go is simple:
 
     go get -v github.com/remogatto/sms/
-    ./sms game.sms
+    ./sms roms/blockhead.sms
 
 # Description
 
