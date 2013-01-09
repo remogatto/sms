@@ -23,6 +23,19 @@ loop:
 	}
 }
 
+// showDisassembled prints out disassembled code.
+func showDisassembled(instructions []z80.DebugInstruction) {
+	arrow := ""
+	for line, instr := range instructions {
+		if line == 0 {
+			arrow = "=>>"
+		} else {
+			arrow = ""
+		}
+		application.Logf(arrow + "\t0x%04x %s\n", instr.Address, instr.Mnemonic)
+	}
+}
+
 // emulatorLoop sends a cmdRenderFrame command to the rendering backend
 // (displayLoop) each 1/50 second.
 type emulatorLoop struct {
@@ -142,13 +155,7 @@ func (l *commandLoop) Run() {
 				cmd.paused <- l.emulatorLoop.sms.paused
 				if application.Verbose && l.emulatorLoop.sms.paused {
 					instructions := z80.DisassembleN(l.emulatorLoop.sms.memory, l.emulatorLoop.sms.cpu.PC(), 10)
-					for line, instr := range instructions {
-						if line == 0 {
-							application.Logf("=>>\t0x%04x %s\n", instr.Address, instr.Mnemonic)
-							continue
-						}
-						application.Logf("\t0x%04x %s\n", instr.Address, instr.Mnemonic)
-					}
+					showDisassembled(instructions)
 				}
 
 			}
