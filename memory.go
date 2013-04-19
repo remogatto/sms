@@ -98,7 +98,7 @@ func (memory *Memory) WriteByte(address uint16, b byte) {
 	memory.WriteByteInternal(address, b)
 }
 
-func (memory *Memory) Data() *[0x10000]byte {
+func (memory *Memory) Data() []byte {
 	return nil
 }
 
