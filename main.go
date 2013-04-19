@@ -32,7 +32,7 @@ func showDisassembled(instructions []z80.DebugInstruction) {
 		} else {
 			arrow = ""
 		}
-		application.Logf(arrow + "\t0x%04x %s\n", instr.Address, instr.Mnemonic)
+		application.Logf(arrow+"\t0x%04x %s\n", instr.Address, instr.Mnemonic)
 	}
 }
 

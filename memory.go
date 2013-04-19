@@ -98,13 +98,6 @@ func (memory *Memory) WriteByte(address uint16, b byte) {
 	memory.WriteByteInternal(address, b)
 }
 
-func (memory *Memory) Read(address uint16) byte {
-	return 0
-}
-
-func (memory *Memory) Write(address uint16, value byte, protectROM bool) {
-}
-
 func (memory *Memory) Data() *[0x10000]byte {
 	return nil
 }
@@ -120,6 +113,9 @@ func (memory *Memory) ContendRead(address uint16, time uint) {
 	contendMemory(memory.cpu, address, time)
 }
 
+// Leave unimplemented
+func (memory *Memory) Read(address uint16) byte                                      { return 0 }
+func (memory *Memory) Write(address uint16, value byte, protectROM bool)             {}
 func (memory *Memory) ContendReadNoMreq(address uint16, time uint)                   {}
 func (memory *Memory) ContendReadNoMreq_loop(address uint16, time uint, count uint)  {}
 func (memory *Memory) ContendWriteNoMreq(address uint16, time uint)                  {}
