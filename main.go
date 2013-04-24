@@ -1,6 +1,7 @@
 package main
 
 import (
+	"runtime/pprof"
 	"flag"
 	"fmt"
 	"github.com/0xe2-0x9a-0x9b/Go-SDL/sdl"
@@ -176,6 +177,7 @@ func main() {
 	verbose := flag.Bool("verbose", false, "verbose mode")
 	debug := flag.Bool("debug", false, "debug mode")
 	fullScreen := flag.Bool("fullscreen", false, "go fullscreen")
+	cpuprofile := flag.String("cpuprofile", "", "write cpu profile to file")
 	help := flag.Bool("help", false, "Show usage")
 	flag.Usage = usage
 	flag.Parse()
@@ -183,6 +185,15 @@ func main() {
 	if *help {
 		usage()
 		return
+	}
+
+	if *cpuprofile != "" {
+		f, err := os.Create(*cpuprofile)
+		if err != nil {
+			log.Fatal(err)
+		}
+		pprof.StartCPUProfile(f)
+		defer pprof.StopCPUProfile()
 	}
 
 	application.Verbose = *verbose
