@@ -4,4 +4,5 @@ sms
 ignore/
 debugger/
 *.prof
+prof/
 

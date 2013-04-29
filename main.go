@@ -1,7 +1,6 @@
 package main
 
 import (
-	"runtime/pprof"
 	"flag"
 	"fmt"
 	"github.com/0xe2-0x9a-0x9b/Go-SDL/sdl"
@@ -9,8 +8,11 @@ import (
 	"github.com/remogatto/z80"
 	"log"
 	"os"
+	"runtime/pprof"
 	"time"
 )
+
+const NUM_FRAMES_FOR_PROFILING = 10000
 
 // drainTicker drains the remaining ticks from the given tick.
 func drainTicker(ticker *time.Ticker) {
@@ -105,13 +107,16 @@ type commandLoop struct {
 	pause, terminate chan int
 	emulatorLoop     *emulatorLoop
 	displayLoop      DisplayLoop
+	numOfSentFrames  int
+	cpuProfiling     bool
 }
 
 // newCommandLoop returns a commandLoop instance.
-func newCommandLoop(emulatorLoop *emulatorLoop, displayLoop DisplayLoop) *commandLoop {
+func newCommandLoop(emulatorLoop *emulatorLoop, displayLoop DisplayLoop, cpuProfiling bool) *commandLoop {
 	return &commandLoop{
 		emulatorLoop: emulatorLoop,
 		displayLoop:  displayLoop,
+		cpuProfiling: cpuProfiling,
 		pause:        make(chan int),
 		terminate:    make(chan int),
 	}
@@ -143,6 +148,10 @@ func (l *commandLoop) Run() {
 
 			case cmdRenderFrame:
 				l.displayLoop.Display() <- l.emulatorLoop.sms.frame()
+				l.numOfSentFrames++
+				if l.numOfSentFrames > NUM_FRAMES_FOR_PROFILING && l.cpuProfiling {
+					application.Exit()
+				}
 
 			case cmdLoadRom:
 				l.emulatorLoop.sms.loadRom(cmd.fileName)
@@ -177,7 +186,7 @@ func main() {
 	verbose := flag.Bool("verbose", false, "verbose mode")
 	debug := flag.Bool("debug", false, "debug mode")
 	fullScreen := flag.Bool("fullscreen", false, "go fullscreen")
-	cpuprofile := flag.String("cpuprofile", "", "write cpu profile to file")
+	cpuProfile := flag.String("cpuprofile", "", "write cpu profile to file")
 	help := flag.Bool("help", false, "Show usage")
 	flag.Usage = usage
 	flag.Parse()
@@ -187,8 +196,8 @@ func main() {
 		return
 	}
 
-	if *cpuprofile != "" {
-		f, err := os.Create(*cpuprofile)
+	if *cpuProfile != "" {
+		f, err := os.Create(*cpuProfile)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -210,7 +219,8 @@ func main() {
 		usage()
 		return
 	}
-	commandLoop := newCommandLoop(emulatorLoop, sdlLoop)
+	cpuProfiling := *cpuProfile != ""
+	commandLoop := newCommandLoop(emulatorLoop, sdlLoop, cpuProfiling)
 	inputLoop := newInputLoop(emulatorLoop.sms)
 
 	application.Register("Emulator loop", emulatorLoop)
