@@ -7,7 +7,7 @@ import (
 
 var hblankcount = 0
 
-const TStatesPerFrame = 220 // Number of T-states per frame
+const TStatesPerFrame = 227 // Number of T-states per frame
 const PAGE_SIZE = 0x4000
 
 const (
@@ -98,20 +98,6 @@ func (sms *SMS) frame() *DisplayData {
 	return &sms.vdp.displayData
 }
 
-func (sms *SMS) joypad(value int, event byte) {
-	switch event {
-	case JOYPAD_DOWN:
-		sms.joystick &= ^value
-		break
-	case JOYPAD_UP:
-		sms.joystick |= value
-		break
-	default:
-		application.Logf("%s", "Unknown joypad event")
-		break
-	}
-}
-
 func (sms *SMS) doOpcodes() {
 	// Main instruction emulation loop
 	{
@@ -130,5 +116,19 @@ func (sms *SMS) doOpcodes() {
 				sms.cpu.R = (sms.cpu.R + 1) & 0x7f
 			}
 		}
+	}
+}
+
+func (sms *SMS) joypad(value int, event byte) {
+	switch event {
+	case JOYPAD_DOWN:
+		sms.joystick &= ^value
+		break
+	case JOYPAD_UP:
+		sms.joystick |= value
+		break
+	default:
+		application.Logf("%s", "Unknown joypad event")
+		break
 	}
 }
