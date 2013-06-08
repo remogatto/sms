@@ -185,7 +185,6 @@ func usage() {
 func main() {
 	verbose := flag.Bool("verbose", false, "verbose mode")
 	debug := flag.Bool("debug", false, "debug mode")
-	fullScreen := flag.Bool("fullscreen", false, "go fullscreen")
 	cpuProfile := flag.String("cpuprofile", "", "write cpu profile to file")
 	help := flag.Bool("help", false, "Show usage")
 	flag.Usage = usage
@@ -212,20 +211,19 @@ func main() {
 		log.Fatal(sdl.GetError())
 	}
 
-	screen := newSDL2xScreen(*fullScreen)
-	sdlLoop := newSDLLoop(screen)
-	emulatorLoop := newEmulatorLoop(sdlLoop)
+	eglLoop := newEGLLoop()
+	emulatorLoop := newEmulatorLoop(eglLoop)
 	if emulatorLoop == nil {
 		usage()
 		return
 	}
 	cpuProfiling := *cpuProfile != ""
-	commandLoop := newCommandLoop(emulatorLoop, sdlLoop, cpuProfiling)
+	commandLoop := newCommandLoop(emulatorLoop, eglLoop, cpuProfiling)
 	inputLoop := newInputLoop(emulatorLoop.sms)
 
 	application.Register("Emulator loop", emulatorLoop)
 	application.Register("Command loop", commandLoop)
-	application.Register("SDL render loop", sdlLoop)
+	application.Register("SDL render loop", eglLoop)
 	application.Register("SDL input loop", inputLoop)
 
 	exitCh := make(chan bool)

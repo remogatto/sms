@@ -9,7 +9,7 @@ const (
 	SCREEN_HEIGHT     = DISPLAY_HEIGHT + BORDER_TOP_BOTTOM*2
 )
 
-type DisplayData [DISPLAY_WIDTH * DISPLAY_HEIGHT]byte
+type DisplayData [DISPLAY_WIDTH * DISPLAY_HEIGHT * 4]byte
 
 type PaletteValue struct {
 	index   uint16

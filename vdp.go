@@ -148,10 +148,16 @@ func (vdp *vdp) rasterizeBackground(lineAddr int, pixelOffset int, tileData int,
 			index := (tileVal0 & 1) | ((tileVal1 & 1) << 1) | ((tileVal2 & 1) << 2) | ((tileVal3 & 1) << 3)
 			index += paletteOffset
 			if index != 0 {
-				vdp.displayData[lineAddr+pixelOffset] = index
+				r, g, b, a := vdp.paletteR[index], vdp.paletteG[index], vdp.paletteB[index], 1
+				addr := lineAddr+pixelOffset
+				vdp.displayData[addr] = r
+				vdp.displayData[addr+1] = g
+				vdp.displayData[addr+2] = b
+				vdp.displayData[addr+3] = byte(a)
+
 			}
-			pixelOffset++
-			pixelOffset &= 255
+			pixelOffset += 4
+			pixelOffset &= 1023
 			tileVal0 >>= 1
 			tileVal1 >>= 1
 			tileVal2 >>= 1
@@ -162,10 +168,16 @@ func (vdp *vdp) rasterizeBackground(lineAddr int, pixelOffset int, tileData int,
 			index := ((tileVal0 & 128) >> 7) | ((tileVal1 & 128) >> 6) | ((tileVal2 & 128) >> 5) | ((tileVal3 & 128) >> 4)
 			index += paletteOffset
 			if index != 0 {
-				vdp.displayData[lineAddr+pixelOffset] = index
+				r, g, b, a := vdp.paletteR[index], vdp.paletteG[index], vdp.paletteB[index], 1
+				addr := lineAddr+pixelOffset
+				vdp.displayData[addr] = r
+				vdp.displayData[addr+1] = g
+				vdp.displayData[addr+2] = b
+				vdp.displayData[addr+3] = byte(a)
+				// vdp.displayData[lineAddr+pixelOffset] = index
 			}
-			pixelOffset++
-			pixelOffset &= 255
+			pixelOffset += 4
+			pixelOffset &= 1023
 			tileVal0 <<= 1
 			tileVal1 <<= 1
 			tileVal2 <<= 1
@@ -176,18 +188,26 @@ func (vdp *vdp) rasterizeBackground(lineAddr int, pixelOffset int, tileData int,
 
 func (vdp *vdp) clearBackground(lineAddr, pixelOffset int) {
 	for k := 0; k < 8; k++ {
-		vdp.displayData[lineAddr+pixelOffset] = 0
-		pixelOffset++
-		pixelOffset &= 255
+		// vdp.displayData[lineAddr+pixelOffset] = 0
+		addr := lineAddr+pixelOffset
+		vdp.displayData[addr] = 0
+		vdp.displayData[addr+1] = 0
+		vdp.displayData[addr+2] = 0
+		vdp.displayData[addr+3] = 0
+		pixelOffset += 4
+		pixelOffset &= 1023
 	}
 }
 
 func (vdp *vdp) rasterizeLine(line int) {
-	lineAddr := line * 256
+	lineAddr := line * 256 * 4
 
 	if (vdp.regs[1] & 64) == 0 {
-		for i := 0; i < 256; i++ {
+		for i := 0; i < 256 * 4; i += 4 {
 			vdp.displayData[lineAddr+i] = 0
+			vdp.displayData[lineAddr+i + 1] = 0
+			vdp.displayData[lineAddr+i + 2] = 0
+			vdp.displayData[lineAddr+i + 3] = 0
 		}
 		return
 	}
@@ -202,7 +222,7 @@ func (vdp *vdp) rasterizeLine(line int) {
 	if (vdp.regs[6] & 4) != 0 {
 		spriteBase = 0x2000
 	}
-	pixelOffset := int(vdp.regs[8]) // * 4
+	pixelOffset := int(vdp.regs[8]) * 4
 	nameAddr := ((int(vdp.regs[2]) << 10) & 0x3800) + (effectiveLine>>3)*64
 	yMod := effectiveLine & 7
 	borderIndex := 16 + (vdp.regs[7] & 0xf)
@@ -248,12 +268,18 @@ func (vdp *vdp) rasterizeLine(line int) {
 					vdp.status |= 0x20
 					break
 				}
-				vdp.displayData[lineAddr+pixelOffset] = 16 + index
+				// vdp.displayData[lineAddr+pixelOffset] = 16 + index
+				r, g, b, a := vdp.paletteR[index+16], vdp.paletteG[index+16], vdp.paletteB[index+16], 1
+				addr := lineAddr+pixelOffset
+				vdp.displayData[addr] = r
+				vdp.displayData[addr+1] = g
+				vdp.displayData[addr+2] = b
+				vdp.displayData[addr+3] = byte(a)
 				writtenTo = true
 			}
 			xPos++
-			pixelOffset++
-			pixelOffset &= 255
+			pixelOffset += 4
+			pixelOffset &= 1023
 		}
 		if (tileData & (1 << 12)) != 0 {
 			vdp.rasterizeBackground(lineAddr, savedOffset, tileData, tileDef)
@@ -263,7 +289,12 @@ func (vdp *vdp) rasterizeLine(line int) {
 	if (vdp.regs[0] & (1 << 5)) != 0 {
 		// Blank out left hand column.
 		for i := 0; i < 8; i++ {
-			vdp.displayData[lineAddr+i] = borderIndex
+			r, g, b, a := vdp.paletteR[borderIndex], vdp.paletteG[borderIndex], vdp.paletteB[borderIndex], 1
+			vdp.displayData[lineAddr+i*4] = r
+			vdp.displayData[lineAddr+1*4+1] = g
+			vdp.displayData[lineAddr+2*4+2] = b
+			vdp.displayData[lineAddr+3*4+3] = byte(a)
+			// vdp.displayData[lineAddr+i] = borderIndex
 		}
 	}
 }
