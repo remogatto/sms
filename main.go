@@ -3,7 +3,6 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/0xe2-0x9a-0x9b/Go-SDL/sdl"
 	"github.com/remogatto/application"
 	"github.com/remogatto/z80"
 	"log"
@@ -207,10 +206,6 @@ func main() {
 	application.Verbose = *verbose
 	application.Debug = *debug
 
-	if sdl.Init(sdl.INIT_EVERYTHING) != 0 {
-		log.Fatal(sdl.GetError())
-	}
-
 	eglLoop := newEGLLoop()
 	emulatorLoop := newEmulatorLoop(eglLoop)
 	if emulatorLoop == nil {
@@ -219,15 +214,12 @@ func main() {
 	}
 	cpuProfiling := *cpuProfile != ""
 	commandLoop := newCommandLoop(emulatorLoop, eglLoop, cpuProfiling)
-	inputLoop := newInputLoop(emulatorLoop.sms)
 
 	application.Register("Emulator loop", emulatorLoop)
 	application.Register("Command loop", commandLoop)
 	application.Register("SDL render loop", eglLoop)
-	application.Register("SDL input loop", inputLoop)
 
 	exitCh := make(chan bool)
 	application.Run(exitCh)
 	<-exitCh
-	sdl.Quit()
 }
