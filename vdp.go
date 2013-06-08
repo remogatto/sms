@@ -168,12 +168,12 @@ func (vdp *vdp) rasterizeBackground(lineAddr int, pixelOffset int, tileData int,
 			index := ((tileVal0 & 128) >> 7) | ((tileVal1 & 128) >> 6) | ((tileVal2 & 128) >> 5) | ((tileVal3 & 128) >> 4)
 			index += paletteOffset
 			if index != 0 {
-				r, g, b, a := vdp.paletteR[index], vdp.paletteG[index], vdp.paletteB[index], 1
+				r, g, b := vdp.paletteR[index], vdp.paletteG[index], vdp.paletteB[index]
 				addr := lineAddr+pixelOffset
 				vdp.displayData[addr] = r
 				vdp.displayData[addr+1] = g
 				vdp.displayData[addr+2] = b
-				vdp.displayData[addr+3] = byte(a)
+				vdp.displayData[addr+3] = 255
 				// vdp.displayData[lineAddr+pixelOffset] = index
 			}
 			pixelOffset += 4
@@ -193,7 +193,7 @@ func (vdp *vdp) clearBackground(lineAddr, pixelOffset int) {
 		vdp.displayData[addr] = 0
 		vdp.displayData[addr+1] = 0
 		vdp.displayData[addr+2] = 0
-		vdp.displayData[addr+3] = 0
+		vdp.displayData[addr+3] = 255
 		pixelOffset += 4
 		pixelOffset &= 1023
 	}
@@ -207,7 +207,7 @@ func (vdp *vdp) rasterizeLine(line int) {
 			vdp.displayData[lineAddr+i] = 0
 			vdp.displayData[lineAddr+i + 1] = 0
 			vdp.displayData[lineAddr+i + 2] = 0
-			vdp.displayData[lineAddr+i + 3] = 0
+			vdp.displayData[lineAddr+i + 3] = 255
 		}
 		return
 	}
@@ -269,12 +269,12 @@ func (vdp *vdp) rasterizeLine(line int) {
 					break
 				}
 				// vdp.displayData[lineAddr+pixelOffset] = 16 + index
-				r, g, b, a := vdp.paletteR[index+16], vdp.paletteG[index+16], vdp.paletteB[index+16], 1
+				r, g, b := vdp.paletteR[index+16], vdp.paletteG[index+16], vdp.paletteB[index+16]
 				addr := lineAddr+pixelOffset
 				vdp.displayData[addr] = r
 				vdp.displayData[addr+1] = g
 				vdp.displayData[addr+2] = b
-				vdp.displayData[addr+3] = byte(a)
+				vdp.displayData[addr+3] = 255
 				writtenTo = true
 			}
 			xPos++
@@ -289,11 +289,11 @@ func (vdp *vdp) rasterizeLine(line int) {
 	if (vdp.regs[0] & (1 << 5)) != 0 {
 		// Blank out left hand column.
 		for i := 0; i < 8; i++ {
-			r, g, b, a := vdp.paletteR[borderIndex], vdp.paletteG[borderIndex], vdp.paletteB[borderIndex], 1
+			r, g, b := vdp.paletteR[borderIndex], vdp.paletteG[borderIndex], vdp.paletteB[borderIndex]
 			vdp.displayData[lineAddr+i*4] = r
 			vdp.displayData[lineAddr+1*4+1] = g
 			vdp.displayData[lineAddr+2*4+2] = b
-			vdp.displayData[lineAddr+3*4+3] = byte(a)
+			vdp.displayData[lineAddr+3*4+3] = 255
 			// vdp.displayData[lineAddr+i] = borderIndex
 		}
 	}
