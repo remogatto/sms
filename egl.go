@@ -70,7 +70,7 @@ func (l *eglLoop) Run() {
 			l.terminate <- 0
 
 		case data := <-l.displayData:
-			cube.AttachTextureFromBuffer(&data[0], DISPLAY_WIDTH, DISPLAY_HEIGHT)
+			cube.AttachTextureFromBuffer(data[:], DISPLAY_WIDTH, DISPLAY_HEIGHT)
 
 		case value := <-l.paletteValue:
 			l.paletteR[value.index] = value.r
