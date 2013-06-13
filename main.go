@@ -12,7 +12,7 @@ import (
 	"time"
 )
 
-const NUM_FRAMES_FOR_PROFILING = 10000
+const NUM_FRAMES_FOR_PROFILING = 1000
 
 // drainTicker drains the remaining ticks from the given tick.
 func drainTicker(ticker *time.Ticker) {

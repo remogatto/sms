@@ -102,21 +102,21 @@ func (memory *Memory) Data() []byte {
 	return nil
 }
 
-func contendMemory(z80 *z80.Z80, address uint16, time uint) {
+func contendMemory(z80 *z80.Z80, address uint16, time int) {
 	tstates_p := &z80.Tstates
 	tstates := *tstates_p
 	tstates += time
 	*tstates_p = tstates
 }
 
-func (memory *Memory) ContendRead(address uint16, time uint) {
+func (memory *Memory) ContendRead(address uint16, time int) {
 	contendMemory(memory.cpu, address, time)
 }
 
 // Leave unimplemented
 func (memory *Memory) Read(address uint16) byte                                      { return 0 }
 func (memory *Memory) Write(address uint16, value byte, protectROM bool)             {}
-func (memory *Memory) ContendReadNoMreq(address uint16, time uint)                   {}
-func (memory *Memory) ContendReadNoMreq_loop(address uint16, time uint, count uint)  {}
-func (memory *Memory) ContendWriteNoMreq(address uint16, time uint)                  {}
-func (memory *Memory) ContendWriteNoMreq_loop(address uint16, time uint, count uint) {}
+func (memory *Memory) ContendReadNoMreq(address uint16, time int)                   {}
+func (memory *Memory) ContendReadNoMreq_loop(address uint16, time int, count uint)  {}
+func (memory *Memory) ContendWriteNoMreq(address uint16, time int)                  {}
+func (memory *Memory) ContendWriteNoMreq_loop(address uint16, time int, count uint) {}
