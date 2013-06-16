@@ -6,13 +6,14 @@ import (
 	"github.com/0xe2-0x9a-0x9b/Go-SDL/sdl"
 	"github.com/remogatto/application"
 	"github.com/remogatto/z80"
+	sms "github.com/remogatto/sms/segamastersystem"
 	"log"
 	"os"
 	"runtime/pprof"
 	"time"
 )
 
-const NUM_FRAMES_FOR_PROFILING = 1000
+const NUM_FRAMES_FOR_PROFILING = 10000
 
 // drainTicker drains the remaining ticks from the given tick.
 func drainTicker(ticker *time.Ticker) {
@@ -43,16 +44,16 @@ func showDisassembled(instructions []z80.DebugInstruction) {
 // (displayLoop) each 1/50 second.
 type emulatorLoop struct {
 	ticker           *time.Ticker
-	sms              *SMS
+	sms              *sms.SMS
 	pause, terminate chan int
 	pauseEmulation   chan int
 }
 
 // newEmulatorLoop returns a new emulatorLoop instance.
-func newEmulatorLoop(displayLoop DisplayLoop) *emulatorLoop {
+func newEmulatorLoop(displayLoop sms.DisplayLoop) *emulatorLoop {
 	emulatorLoop := &emulatorLoop{
 		ticker:         time.NewTicker(time.Duration(1e9 / 50)), // 50 Hz
-		sms:            newSMS(displayLoop),
+		sms:            sms.NewSMS(displayLoop),
 		pause:          make(chan int),
 		terminate:      make(chan int),
 		pauseEmulation: make(chan int),
@@ -60,7 +61,7 @@ func newEmulatorLoop(displayLoop DisplayLoop) *emulatorLoop {
 	if flag.Arg(0) == "" {
 		return nil
 	}
-	emulatorLoop.sms.loadRom(flag.Arg(0))
+	emulatorLoop.sms.LoadROM(flag.Arg(0))
 	return emulatorLoop
 }
 
@@ -88,9 +89,9 @@ func (l *emulatorLoop) Run() {
 		case <-l.terminate:
 			l.terminate <- 0
 		case <-l.ticker.C:
-			l.sms.command <- cmdRenderFrame{}
+			l.sms.Command <- sms.CmdRenderFrame{}
 		case <-l.pauseEmulation:
-			if l.sms.paused {
+			if l.sms.Paused {
 				l.ticker.Stop()
 				drainTicker(l.ticker)
 			} else {
@@ -106,13 +107,13 @@ func (l *emulatorLoop) Run() {
 type commandLoop struct {
 	pause, terminate chan int
 	emulatorLoop     *emulatorLoop
-	displayLoop      DisplayLoop
+	displayLoop      sms.DisplayLoop
 	numOfSentFrames  int
 	cpuProfiling     bool
 }
 
 // newCommandLoop returns a commandLoop instance.
-func newCommandLoop(emulatorLoop *emulatorLoop, displayLoop DisplayLoop, cpuProfiling bool) *commandLoop {
+func newCommandLoop(emulatorLoop *emulatorLoop, displayLoop sms.DisplayLoop, cpuProfiling bool) *commandLoop {
 	return &commandLoop{
 		emulatorLoop: emulatorLoop,
 		displayLoop:  displayLoop,
@@ -143,29 +144,29 @@ func (l *commandLoop) Run() {
 			l.pause <- 0
 		case <-l.terminate:
 			l.terminate <- 0
-		case _cmd := <-l.emulatorLoop.sms.command:
+		case _cmd := <-l.emulatorLoop.sms.Command:
 			switch cmd := _cmd.(type) {
 
-			case cmdRenderFrame:
-				l.displayLoop.Display() <- l.emulatorLoop.sms.frame()
+			case sms.CmdRenderFrame:
+				l.displayLoop.Display() <- l.emulatorLoop.sms.RenderFrame()
 				l.numOfSentFrames++
 				if l.numOfSentFrames > NUM_FRAMES_FOR_PROFILING && l.cpuProfiling {
 					application.Exit()
 				}
 
-			case cmdLoadRom:
-				l.emulatorLoop.sms.loadRom(cmd.fileName)
+			case sms.CmdLoadROM:
+				l.emulatorLoop.sms.LoadROM(cmd.Filename)
 
-			case cmdJoypadEvent:
-				l.emulatorLoop.sms.joypad(cmd.value, cmd.event)
+			case sms.CmdJoypadEvent:
+				l.emulatorLoop.sms.Joypad(cmd.Value, cmd.Event)
 
-			case cmdPauseEmulation:
+			case sms.CmdPauseEmulation:
 				l.emulatorLoop.pauseEmulation <- 0
 				<-l.emulatorLoop.pauseEmulation
-				cmd.paused <- l.emulatorLoop.sms.paused
-				if application.Verbose && l.emulatorLoop.sms.paused {
-					instructions := z80.DisassembleN(l.emulatorLoop.sms.memory, l.emulatorLoop.sms.cpu.PC(), 10)
-					showDisassembled(instructions)
+				cmd.Paused <- l.emulatorLoop.sms.Paused
+				if application.Verbose && l.emulatorLoop.sms.Paused {
+					// instructions := z80.DisassembleN(l.emulatorLoop.sms.Memory, l.emulatorLoop.sms.Cpu.PC(), 10)
+					// showDisassembled(instructions)
 				}
 
 			}
@@ -212,8 +213,8 @@ func main() {
 		log.Fatal(sdl.GetError())
 	}
 
-	screen := newSDL2xScreen(*fullScreen)
-	sdlLoop := newSDLLoop(screen)
+	screen := sms.NewSDL2xScreen(*fullScreen)
+	sdlLoop := sms.NewSDLLoop(screen)
 	emulatorLoop := newEmulatorLoop(sdlLoop)
 	if emulatorLoop == nil {
 		usage()
@@ -221,7 +222,7 @@ func main() {
 	}
 	cpuProfiling := *cpuProfile != ""
 	commandLoop := newCommandLoop(emulatorLoop, sdlLoop, cpuProfiling)
-	inputLoop := newInputLoop(emulatorLoop.sms)
+	inputLoop := sms.NewInputLoop(emulatorLoop.sms)
 
 	application.Register("Emulator loop", emulatorLoop)
 	application.Register("Command loop", commandLoop)

@@ -1,0 +1,79 @@
+package z80
+
+import (
+	"github.com/0xe2-0x9a-0x9b/Go-SDL/sdl"
+	"github.com/remogatto/application"
+	sms "github.com/remogatto/sms/segamastersystem"
+	"log"
+	"testing"
+)
+
+type benchmarkLoop struct {
+	pause, terminate chan int
+	displayLoop      sms.DisplayLoop
+	sms              *sms.SMS
+	b                *testing.B
+}
+
+// newCommandLoop returns a commandLoop instance.
+func newBenchmarkLoop(sms *sms.SMS, displayLoop sms.DisplayLoop, b *testing.B) *benchmarkLoop {
+	return &benchmarkLoop{
+		sms:         sms,
+		b:           b,
+		displayLoop: displayLoop,
+		pause:       make(chan int),
+		terminate:   make(chan int),
+	}
+}
+
+// Pause returns the pause channel of the loop.
+// If a value is sent to this channel, the loop will be paused.
+func (l *benchmarkLoop) Pause() chan int {
+	return l.pause
+}
+
+// Terminate returns the terminate channel of the loop.
+// If a value is sent to this channel, the loop will be terminated.
+func (l *benchmarkLoop) Terminate() chan int {
+	return l.terminate
+}
+
+// Run runs the commandLoop.
+// The loop waits for commands sent to sms.command channel.
+func (l *benchmarkLoop) Run() {
+	for {
+		select {
+		case <-l.pause:
+			l.pause <- 0
+		case <-l.terminate:
+			l.terminate <- 0
+		default:
+			l.b.StartTimer()
+			for i := 0; i < l.b.N; i++ {
+				l.displayLoop.Display() <- l.sms.RenderFrame()
+			}
+			application.Exit()
+		}
+	}
+}
+
+func BenchmarkRendering(b *testing.B) {
+	b.StopTimer()
+
+	if sdl.Init(sdl.INIT_EVERYTHING) != 0 {
+		log.Fatal(sdl.GetError())
+	}
+
+	screen := sms.NewSDL2xScreen(false)
+	displayLoop := sms.NewSDLLoop(screen)
+	sms := sms.NewSMS(displayLoop)
+	benchmarkLoop := newBenchmarkLoop(sms, displayLoop, b)
+	application.Register("SDL render loop", displayLoop)
+	application.Register("Benchmark Loop", benchmarkLoop)
+
+	sms.LoadROM("../roms/blockhead.sms")
+
+	exitCh := make(chan bool)
+	application.Run(exitCh)
+	<-exitCh
+}
