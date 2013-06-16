@@ -72,7 +72,7 @@ func writePalette(vdp *vdp, val byte) {
 	vdp.paletteG[vdp.addr] = byte(g)
 	vdp.paletteB[vdp.addr] = byte(b)
 
-	vdp.displayLoop.WritePalette() <- PaletteValue{vdp.addr, byte(r), byte(g), byte(b)}
+	vdp.displayLoop.WritePalette() <- PaletteValue{byte(vdp.addr), byte(r), byte(g), byte(b)}
 
 	vdp.palette[vdp.addr] = val
 	vdp.addr = (vdp.addr + 1) & 0x1f
