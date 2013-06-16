@@ -26,8 +26,8 @@ type CmdJoypadEvent struct {
 	Event byte
 }
 
-type CmdPauseEmulation struct { 
-	Paused chan bool 
+type CmdPauseEmulation struct {
+	Paused chan bool
 }
 
 type CmdShowCurrentInstruction struct{}
@@ -84,6 +84,11 @@ func (sms *SMS) LoadROM(fileName string) {
 		sms.memory.pages[i] = byte(i % numROMBanks)
 	}
 	sms.memory.romPageMask = byte(numROMBanks - 1)
+	sms.memory.maskedPage0 = sms.memory.pages[0] & sms.memory.romPageMask
+	sms.memory.maskedPage1 = sms.memory.pages[1] & sms.memory.romPageMask
+	sms.memory.maskedPage2 = sms.memory.pages[2] & sms.memory.romPageMask
+	sms.memory.romBank0 = make([]byte, PAGE_SIZE)
+	copy(sms.memory.romBank0, sms.memory.romBanks[sms.memory.maskedPage0][:])
 }
 
 func (sms *SMS) RenderFrame() *DisplayData {

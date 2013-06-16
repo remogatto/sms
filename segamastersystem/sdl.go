@@ -155,12 +155,12 @@ func (screen *sdl2xScreen) renderDisplay(data *DisplayData, colorValues [32]uint
 	size := DISPLAY_SIZE
 	ptrBpp := uintptr(bpp)
 	ptrPitch := uintptr(pitch)
-	ptrBpp_ptrPitch := ptrBpp+ptrPitch
+	ptrBpp_ptrPitch := ptrBpp + ptrPitch
 	x, y := uint(0), uint(0)
 	surface.surface.Lock()
 	for c := 0; c < size; c++ {
 		wy := y << DISPLAY_WIDTH_LOG2
-		scanlineLen := (y*pitch)<<1
+		scanlineLen := (y * pitch) << 1
 		x %= DISPLAY_WIDTH
 		offset := uintptr(scanlineLen + x<<1*bpp)
 		addr := uintptr(pixels + offset)
@@ -201,7 +201,7 @@ type sdlLoop struct {
 	updateBorder                 chan byte
 	pause, terminate             chan int
 	paletteR, paletteG, paletteB [32]byte
-	colorValues [32]uint32
+	colorValues                  [32]uint32
 	screen                       sdlScreen
 }
 

@@ -9,7 +9,11 @@ type Memory struct {
 	cartridgeRam      [0x8000]byte
 	pages             [4]byte
 	romBanks          [][]byte
+	romBank0 []byte
 	romPageMask       byte
+	maskedPage0       byte
+	maskedPage1       byte
+	maskedPage2       byte
 	ramSelectRegister byte
 	cpu               *z80.Z80
 }
@@ -29,10 +33,10 @@ func (memory *Memory) ReadByteInternal(address uint16) byte {
 		return memory.romBanks[0][address]
 	}
 	if address < 0x4000 {
-		return memory.romBanks[memory.pages[0]&memory.romPageMask][address]
+		return memory.romBank0[address]
 	}
 	if address < 0x8000 {
-		return memory.romBanks[memory.pages[1]&memory.romPageMask][address-0x4000]
+		return memory.romBanks[memory.maskedPage1][address-0x4000]
 	}
 	if address < 0xc000 {
 		if (memory.ramSelectRegister & 12) == 8 {
@@ -40,7 +44,7 @@ func (memory *Memory) ReadByteInternal(address uint16) byte {
 		} else if (memory.ramSelectRegister & 12) == 12 {
 			return memory.cartridgeRam[address-0x4000]
 		} else {
-			return memory.romBanks[memory.pages[2]&memory.romPageMask][address-0x8000]
+			return memory.romBanks[memory.maskedPage2][address-0x8000]
 		}
 	}
 	if address < 0xe000 {
@@ -72,12 +76,16 @@ func (memory *Memory) WriteByteInternal(address uint16, b byte) {
 			break
 		case 0xfffd:
 			memory.pages[0] = b
+			memory.maskedPage0 = b & memory.romPageMask
+			copy(memory.romBank0, memory.romBanks[memory.maskedPage0][:])
 			break
 		case 0xfffe:
 			memory.pages[1] = b
+			memory.maskedPage1 = b & memory.romPageMask
 			break
 		case 0xffff:
 			memory.pages[2] = b
+			memory.maskedPage2 = b & memory.romPageMask
 			break
 		default:
 			panic("zoiks")
@@ -103,10 +111,7 @@ func (memory *Memory) Data() []byte {
 }
 
 func contendMemory(z80 *z80.Z80, address uint16, time int) {
-	tstates_p := &z80.Tstates
-	tstates := *tstates_p
-	tstates += time
-	*tstates_p = tstates
+	z80.Tstates += 4
 }
 
 func (memory *Memory) ContendRead(address uint16, time int) {
@@ -114,8 +119,8 @@ func (memory *Memory) ContendRead(address uint16, time int) {
 }
 
 // Leave unimplemented
-func (memory *Memory) Read(address uint16) byte                                      { return 0 }
-func (memory *Memory) Write(address uint16, value byte, protectROM bool)             {}
+func (memory *Memory) Read(address uint16) byte                                     { return 0 }
+func (memory *Memory) Write(address uint16, value byte, protectROM bool)            {}
 func (memory *Memory) ContendReadNoMreq(address uint16, time int)                   {}
 func (memory *Memory) ContendReadNoMreq_loop(address uint16, time int, count uint)  {}
 func (memory *Memory) ContendWriteNoMreq(address uint16, time int)                  {}
