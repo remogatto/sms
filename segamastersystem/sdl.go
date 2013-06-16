@@ -155,6 +155,7 @@ func (screen *sdl2xScreen) renderDisplay(data *DisplayData, colorValues [32]uint
 	size := DISPLAY_SIZE
 	ptrBpp := uintptr(bpp)
 	ptrPitch := uintptr(pitch)
+	ptrBpp_ptrPitch := ptrBpp+ptrPitch
 	x, y := uint(0), uint(0)
 	surface.surface.Lock()
 	for c := 0; c < size; c++ {
@@ -168,7 +169,7 @@ func (screen *sdl2xScreen) renderDisplay(data *DisplayData, colorValues [32]uint
 		*(*uint32)(unsafe.Pointer(addr)) = color
 		*(*uint32)(unsafe.Pointer(addr + ptrBpp)) = color
 		*(*uint32)(unsafe.Pointer(addr + ptrPitch)) = color
-		*(*uint32)(unsafe.Pointer(addr + ptrPitch + ptrBpp)) = color
+		*(*uint32)(unsafe.Pointer(addr + ptrBpp_ptrPitch)) = color
 		x++
 		if x == DISPLAY_WIDTH {
 			y++

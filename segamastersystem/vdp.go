@@ -208,7 +208,7 @@ func (vdp *vdp) rasterizeLine(line int) {
 	for i := 0; i < 32; i++ {
 		tileData := int(vdp.vram[nameAddr+i<<1]) | (int(vdp.vram[nameAddr+i<<1+1]) << 8)
 		tileNum := int(tileData) & 511
-		tileDef := 32 * tileNum
+		tileDef := tileNum << 5
 		if (tileData & (1 << 10)) != 0 {
 			tileDef += 28 - (yMod << 2)
 		} else {

@@ -7,8 +7,6 @@ import (
 	"testing"
 )
 
-const numOfGeneratedFrames = 100
-
 func BenchmarkRendering(b *testing.B) {
 	if sdl.Init(sdl.INIT_EVERYTHING) != 0 {
 		log.Fatal(sdl.GetError())
@@ -23,6 +21,7 @@ func BenchmarkRendering(b *testing.B) {
 
 	sms.LoadROM("../roms/blockhead.sms")
 	
+	numOfGeneratedFrames := 100
 	generatedFrames := make([]smslib.DisplayData, numOfGeneratedFrames)
 
 	for i := 0; i < numOfGeneratedFrames; i++ {
@@ -34,5 +33,25 @@ func BenchmarkRendering(b *testing.B) {
 		for _, frame := range generatedFrames {
 			displayLoop.Display() <- &frame
 		}
+	}
+}
+
+func BenchmarkCPU(b *testing.B) {
+	if sdl.Init(sdl.INIT_EVERYTHING) != 0 {
+		log.Fatal(sdl.GetError())
+	}
+
+	screen := smslib.NewSDL2xScreen(false)
+
+	displayLoop := smslib.NewSDLLoop(screen)
+	go displayLoop.Run()
+
+	sms := smslib.NewSMS(displayLoop)
+
+	sms.LoadROM("../roms/blockhead.sms")
+	
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		sms.RenderFrame()
 	}
 }
