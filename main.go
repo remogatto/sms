@@ -50,10 +50,10 @@ type emulatorLoop struct {
 }
 
 // newEmulatorLoop returns a new emulatorLoop instance.
-func newEmulatorLoop(displayLoop sms.DisplayLoop) *emulatorLoop {
+func newEmulatorLoop(displaySurface sms.DisplaySurface) *emulatorLoop {
 	emulatorLoop := &emulatorLoop{
 		ticker:         time.NewTicker(time.Duration(1e9 / 50)), // 50 Hz
-		sms:            sms.NewSMS(displayLoop),
+		sms:            sms.NewSMS(displaySurface),
 		pause:          make(chan int),
 		terminate:      make(chan int),
 		pauseEmulation: make(chan int),
@@ -107,16 +107,14 @@ func (l *emulatorLoop) Run() {
 type commandLoop struct {
 	pause, terminate chan int
 	emulatorLoop     *emulatorLoop
-	displayLoop      sms.DisplayLoop
 	numOfSentFrames  int
 	cpuProfiling     bool
 }
 
 // newCommandLoop returns a commandLoop instance.
-func newCommandLoop(emulatorLoop *emulatorLoop, displayLoop sms.DisplayLoop, cpuProfiling bool) *commandLoop {
+func newCommandLoop(emulatorLoop *emulatorLoop, cpuProfiling bool) *commandLoop {
 	return &commandLoop{
 		emulatorLoop: emulatorLoop,
-		displayLoop:  displayLoop,
 		cpuProfiling: cpuProfiling,
 		pause:        make(chan int),
 		terminate:    make(chan int),
@@ -148,7 +146,7 @@ func (l *commandLoop) Run() {
 			switch cmd := _cmd.(type) {
 
 			case sms.CmdRenderFrame:
-				l.displayLoop.Display() <- l.emulatorLoop.sms.RenderFrame()
+				l.emulatorLoop.sms.Frame().Render()
 				l.numOfSentFrames++
 				if l.numOfSentFrames > NUM_FRAMES_FOR_PROFILING && l.cpuProfiling {
 					application.Exit()
@@ -214,19 +212,17 @@ func main() {
 	}
 
 	screen := sms.NewSDL2xScreen(*fullScreen)
-	sdlLoop := sms.NewSDLLoop(screen)
-	emulatorLoop := newEmulatorLoop(sdlLoop)
+	emulatorLoop := newEmulatorLoop(screen)
 	if emulatorLoop == nil {
 		usage()
 		return
 	}
 	cpuProfiling := *cpuProfile != ""
-	commandLoop := newCommandLoop(emulatorLoop, sdlLoop, cpuProfiling)
+	commandLoop := newCommandLoop(emulatorLoop, cpuProfiling)
 	inputLoop := sms.NewInputLoop(emulatorLoop.sms)
 
 	application.Register("Emulator loop", emulatorLoop)
 	application.Register("Command loop", commandLoop)
-	application.Register("SDL render loop", sdlLoop)
 	application.Register("SDL input loop", inputLoop)
 
 	exitCh := make(chan bool)

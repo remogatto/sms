@@ -7,8 +7,15 @@ import (
 	"unsafe"
 )
 
+const (
+	BPP = 4
+	PITCH = 512 << 2
+	BPP_PITCH = 4 + 512 << 2
+)
+
 type sdlSurface struct {
 	surface *sdl.Surface
+	pixels uintptr
 }
 
 func (s *sdlSurface) width() uint {
@@ -41,7 +48,10 @@ func newSDLSurface(w, h int) *sdlSurface {
 		application.Exit()
 		return nil
 	}
-	return &sdlSurface{surface}
+	return &sdlSurface{
+		surface,
+		uintptr(surface.Pixels),
+	}
 }
 
 // Create an SDL surface suitable for an unscaled screen
@@ -50,73 +60,15 @@ func newUnscaledSurface() *sdlSurface {
 }
 
 type sdlScreen interface {
-	renderDisplay(data *DisplayData, colorValues [32]uint32) *sdlSurface
 	display() *sdlSurface
 	border() *sdlSurface
 	screen() *sdlSurface
 	displayRect() *sdl.Rect
 }
 
-type sdlUnscaledScreen struct {
-	screenSurface, borderSurface, displaySurface *sdlSurface
-}
-
-func newSDLUnscaledScreen() *sdlUnscaledScreen {
-	screenSurface := &sdlSurface{sdl.SetVideoMode(SCREEN_WIDTH, SCREEN_HEIGHT, 32, sdl.SWSURFACE)}
-	if screenSurface.surface == nil {
-		log.Printf("%s", sdl.GetError())
-		application.Exit()
-		return nil
-	}
-	borderSurface := &sdlSurface{sdl.CreateRGBSurface(sdl.SWSURFACE, SCREEN_WIDTH, SCREEN_HEIGHT, 32, 0, 0, 0, 0)}
-	if borderSurface.surface == nil {
-		log.Printf("%s", sdl.GetError())
-		application.Exit()
-		return nil
-	}
-	displaySurface := &sdlSurface{sdl.CreateRGBSurface(sdl.SWSURFACE, DISPLAY_WIDTH, DISPLAY_HEIGHT, 32, 0, 0, 0, 0)}
-	if displaySurface.surface == nil {
-		log.Printf("%s", sdl.GetError())
-		application.Exit()
-		return nil
-	}
-	return &sdlUnscaledScreen{screenSurface, borderSurface, displaySurface}
-}
-
-func (screen *sdlUnscaledScreen) renderDisplay(data *DisplayData, paletteR, paletteG, paletteB []byte) *sdlSurface {
-	surface := screen.displaySurface
-	surface.surface.Lock()
-	for y := uint(0); y < DISPLAY_HEIGHT; y++ {
-		wy := y * DISPLAY_WIDTH
-		for x := uint(0); x < DISPLAY_WIDTH; x++ {
-			addr := surface.addrXY(x, y)
-			index := data[wy+x]
-			color := rgba{paletteR[index], paletteG[index], paletteB[index], 0}
-			*(*uint32)(unsafe.Pointer(addr)) = color.value32()
-		}
-	}
-	surface.surface.Unlock()
-	return surface
-}
-
-func (screen *sdlUnscaledScreen) displayRect() *sdl.Rect {
-	return &sdl.Rect{BORDER_LEFT_RIGHT, BORDER_TOP_BOTTOM, DISPLAY_WIDTH, DISPLAY_HEIGHT}
-}
-
-func (screen *sdlUnscaledScreen) border() *sdlSurface {
-	return screen.borderSurface
-}
-
-func (screen *sdlUnscaledScreen) screen() *sdlSurface {
-	return screen.screenSurface
-}
-
-func (screen *sdlUnscaledScreen) display() *sdlSurface {
-	return screen.displaySurface
-}
-
 type sdl2xScreen struct {
 	screenSurface, borderSurface, displaySurface *sdlSurface
+	colorValues [32]uint32
 }
 
 func NewSDL2xScreen(fullScreen bool) *sdl2xScreen {
@@ -126,57 +78,69 @@ func NewSDL2xScreen(fullScreen bool) *sdl2xScreen {
 		sdlMode = sdl.FULLSCREEN
 		sdl.ShowCursor(sdl.DISABLE)
 	}
-	screenSurface := &sdlSurface{sdl.SetVideoMode(SCREEN_WIDTH*2, SCREEN_HEIGHT*2, 32, sdlMode)}
+	screenSurface := &sdlSurface{sdl.SetVideoMode(SCREEN_WIDTH*2, SCREEN_HEIGHT*2, 32, sdlMode), 0}
 	if screenSurface.surface == nil {
 		log.Printf("%s", sdl.GetError())
 		application.Exit()
 		return nil
 	}
-	borderSurface := &sdlSurface{sdl.CreateRGBSurface(sdl.SWSURFACE, SCREEN_WIDTH*2, SCREEN_HEIGHT*2, 32, 0, 0, 0, 0)}
+	borderSurface := newSDLSurface(SCREEN_WIDTH*2, SCREEN_HEIGHT*2)
 	if borderSurface.surface == nil {
 		log.Printf("%s", sdl.GetError())
 		application.Exit()
 		return nil
 	}
-	displaySurface := &sdlSurface{sdl.CreateRGBSurface(sdl.SWSURFACE, DISPLAY_WIDTH*2, DISPLAY_HEIGHT*2, 32, 0, 0, 0, 0)}
+	displaySurface := newSDLSurface(DISPLAY_WIDTH*2, DISPLAY_HEIGHT*2)
 	if displaySurface.surface == nil {
 		log.Printf("%s", sdl.GetError())
 		application.Exit()
 		return nil
 	}
-	return &sdl2xScreen{screenSurface, borderSurface, displaySurface}
+
+	return &sdl2xScreen{
+	screenSurface: screenSurface, 
+	borderSurface: borderSurface, 
+	displaySurface: displaySurface,
+	}
 }
 
-func (screen *sdl2xScreen) renderDisplay(data *DisplayData, colorValues [32]uint32) *sdlSurface {
-	surface := screen.displaySurface
-	bpp := surface.bpp()
-	pitch := surface.pitch()
-	pixels := uintptr(surface.surface.Pixels)
-	size := DISPLAY_SIZE
-	ptrBpp := uintptr(bpp)
-	ptrPitch := uintptr(pitch)
-	ptrBpp_ptrPitch := ptrBpp + ptrPitch
-	x, y := uint(0), uint(0)
-	surface.surface.Lock()
-	for c := 0; c < size; c++ {
-		wy := y << DISPLAY_WIDTH_LOG2
-		scanlineLen := (y * pitch) << 1
-		x %= DISPLAY_WIDTH
-		offset := uintptr(scanlineLen + x<<1*bpp)
-		addr := uintptr(pixels + offset)
-		color := colorValues[data[wy+x]]
-		// Fill a 2x2 rectangle
-		*(*uint32)(unsafe.Pointer(addr)) = color
-		*(*uint32)(unsafe.Pointer(addr + ptrBpp)) = color
-		*(*uint32)(unsafe.Pointer(addr + ptrPitch)) = color
-		*(*uint32)(unsafe.Pointer(addr + ptrBpp_ptrPitch)) = color
-		x++
-		if x == DISPLAY_WIDTH {
-			y++
-		}
-	}
-	surface.surface.Unlock()
-	return surface
+func (screen *sdl2xScreen) Render() {
+	displayRect := screen.displayRect()
+	displaySurface := screen.display().surface
+	borderSurface := screen.border().surface
+	// copy display surface on border surface
+	borderSurface.Blit(&sdl.Rect{0, 0, 0, 0}, displaySurface, nil)
+	// flip surface
+	screen.screen().surface.Blit(&sdl.Rect{displayRect.X, displayRect.Y, 0, 0}, borderSurface, nil)
+	screen.screen().surface.Flip()
+}
+
+func (screen *sdl2xScreen) RasterizePixel(line int, pixelOffset, index byte) {
+	offset := uintptr(line << 4 + int(pixelOffset) << 3)
+	addr := uintptr(screen.displaySurface.pixels + offset)
+	color := screen.colorValues[index]
+	// Fill a 2x2 rectangle
+	*(*uint32)(unsafe.Pointer(addr)) = color
+	*(*uint32)(unsafe.Pointer(addr + BPP)) = color
+	*(*uint32)(unsafe.Pointer(addr + PITCH)) = color
+	*(*uint32)(unsafe.Pointer(addr + BPP_PITCH)) = color
+}
+
+func (screen *sdl2xScreen) UpdateBorder(index byte) {
+	color := screen.colorValues[index]
+	display := screen.display()
+	border := screen.border()
+	border.surface.FillRect(nil, color)
+	displayRect := screen.displayRect()
+	// copy display surface on border surface
+	screen.screen().surface.Blit(nil, screen.border().surface, nil)
+	// flip surface
+	screen.screen().surface.Blit(&sdl.Rect{displayRect.X, displayRect.Y, 0, 0}, display.surface, nil)
+	screen.screen().surface.Flip()
+}
+
+func (screen *sdl2xScreen) WritePalette(index, r, g, b byte) {
+	screen.colorValues[index] = (uint32(r) << 16) | (uint32(g) << 8) | uint32(b)
 }
 
 func (screen *sdl2xScreen) border() *sdlSurface {
@@ -195,95 +159,3 @@ func (screen *sdl2xScreen) displayRect() *sdl.Rect {
 	return &sdl.Rect{BORDER_LEFT_RIGHT * 2, BORDER_TOP_BOTTOM * 2, DISPLAY_WIDTH * 2, DISPLAY_HEIGHT * 2}
 }
 
-type sdlLoop struct {
-	displayData                  chan *DisplayData
-	paletteValue                 chan PaletteValue
-	updateBorder                 chan byte
-	pause, terminate             chan int
-	paletteR, paletteG, paletteB [32]byte
-	colorValues                  [32]uint32
-	screen                       sdlScreen
-}
-
-func NewSDLLoop(screen sdlScreen) *sdlLoop {
-	return &sdlLoop{
-		screen:       screen,
-		displayData:  make(chan *DisplayData),
-		paletteValue: make(chan PaletteValue),
-		updateBorder: make(chan byte),
-		pause:        make(chan int),
-		terminate:    make(chan int),
-	}
-}
-
-func (l *sdlLoop) Pause() chan int {
-	return l.pause
-}
-
-func (l *sdlLoop) Terminate() chan int {
-	return l.terminate
-}
-
-func (l *sdlLoop) Display() chan<- *DisplayData {
-	return l.displayData
-}
-
-func (l *sdlLoop) WritePalette() chan<- PaletteValue {
-	return l.paletteValue
-}
-
-func (l *sdlLoop) UpdateBorder() chan<- byte {
-	return l.updateBorder
-}
-
-func (l *sdlLoop) Run() {
-	for {
-		select {
-		case <-l.pause:
-			l.pause <- 0
-
-		case <-l.terminate:
-			l.terminate <- 0
-
-		case data := <-l.displayData:
-			l.Render(data)
-
-		case value := <-l.paletteValue:
-			l.paletteR[value.index] = value.r
-			l.paletteG[value.index] = value.g
-			l.paletteB[value.index] = value.b
-			l.calcColor(value.index, value.r, value.g, value.b)
-		case value := <-l.updateBorder:
-			l.renderBorder(value)
-
-		}
-	}
-}
-
-func (l *sdlLoop) Render(data *DisplayData) {
-	displayRect := l.screen.displayRect()
-	// render surface
-	displaySurface := l.screen.renderDisplay(data, l.colorValues)
-	// copy display surface on border surface
-	l.screen.border().surface.Blit(&sdl.Rect{0, 0, 0, 0}, displaySurface.surface, nil)
-	// flip surface
-	l.screen.screen().surface.Blit(&sdl.Rect{displayRect.X, displayRect.Y, 0, 0}, l.screen.border().surface, nil)
-	l.screen.screen().surface.Flip()
-}
-
-func (l *sdlLoop) renderBorder(index byte) {
-	color := rgba{l.paletteR[index], l.paletteG[index], l.paletteB[index], 0}.value32()
-	display := l.screen.display()
-	border := l.screen.border()
-	border.surface.FillRect(nil, color)
-	displayRect := l.screen.displayRect()
-	// copy display surface on border surface
-	l.screen.screen().surface.Blit(nil, l.screen.border().surface, nil)
-	// flip surface
-	l.screen.screen().surface.Blit(&sdl.Rect{displayRect.X, displayRect.Y, 0, 0}, display.surface, nil)
-	l.screen.screen().surface.Flip()
-}
-
-func (l *sdlLoop) calcColor(index, r, g, b byte) {
-	l.colorValues[index] = (uint32(r) << 16) | (uint32(g) << 8) | uint32(b)
-}

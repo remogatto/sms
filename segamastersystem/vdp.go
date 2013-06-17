@@ -14,13 +14,12 @@ type vdp struct {
 	hBlankCounter                int
 	writeRoutine                 func(*vdp, byte)
 	readRoutine                  func(*vdp) byte
-	displayData                  DisplayData
-	displayLoop                  DisplayLoop
+	displaySurface                  DisplaySurface
 }
 
 func (vdp *vdp) updateBorder() {
 	borderIndex := 16 + (vdp.regs[7] & 0xf)
-	vdp.displayLoop.UpdateBorder() <- borderIndex
+	vdp.displaySurface.UpdateBorder(borderIndex)
 }
 
 func (vdp *vdp) writeAddr(val uint16) {
@@ -72,7 +71,7 @@ func writePalette(vdp *vdp, val byte) {
 	vdp.paletteG[vdp.addr] = byte(g)
 	vdp.paletteB[vdp.addr] = byte(b)
 
-	vdp.displayLoop.WritePalette() <- PaletteValue{byte(vdp.addr), byte(r), byte(g), byte(b)}
+	vdp.displaySurface.WritePalette(byte(vdp.addr), byte(r), byte(g), byte(b))
 
 	vdp.palette[vdp.addr] = val
 	vdp.addr = (vdp.addr + 1) & 0x1f
@@ -108,10 +107,11 @@ func (vdp *vdp) readStatus() byte {
 	return res
 }
 
-func (vdp *vdp) findSprites(line int) [][]int {
+func (vdp *vdp) findSprites(line int) *[][]int {
 	spriteInfo := int(vdp.regs[5]&0x7e) << 7
 	active := make([][]int, 0)
 	spriteHeight := 8
+	spriteInfo_128 := spriteInfo + 128
 	if (vdp.regs[1] & 2) != 0 {
 		spriteHeight = 16
 	}
@@ -128,10 +128,11 @@ func (vdp *vdp) findSprites(line int) [][]int {
 				vdp.status |= 0x40 // Sprite overflow
 				break
 			}
-			active = append(active, []int{int(vdp.vram[spriteInfo+128+i*2]), int(vdp.vram[spriteInfo+128+i*2+1]), y})
+			spriteInfo_128_i := spriteInfo_128+i<<1
+			active = append(active, []int{int(vdp.vram[spriteInfo_128_i]), int(vdp.vram[spriteInfo_128_i+1]), y})
 		}
 	}
-	return active
+	return &active
 }
 
 func (vdp *vdp) rasterizeBackground(lineAddr int, pixelOffset byte, tileData int, tileDef int) {
@@ -148,7 +149,7 @@ func (vdp *vdp) rasterizeBackground(lineAddr int, pixelOffset byte, tileData int
 			index := (tileVal0 & 1) | ((tileVal1 & 1) << 1) | ((tileVal2 & 1) << 2) | ((tileVal3 & 1) << 3)
 			index += paletteOffset
 			if index != 0 {
-				vdp.displayData[lineAddr+int(pixelOffset)] = index
+				vdp.displaySurface.RasterizePixel(lineAddr, pixelOffset, index)
 			}
 			pixelOffset++
 			tileVal0 >>= 1
@@ -161,7 +162,7 @@ func (vdp *vdp) rasterizeBackground(lineAddr int, pixelOffset byte, tileData int
 			index := ((tileVal0 & 128) >> 7) | ((tileVal1 & 128) >> 6) | ((tileVal2 & 128) >> 5) | ((tileVal3 & 128) >> 4)
 			index += paletteOffset
 			if index != 0 {
-				vdp.displayData[lineAddr+int(pixelOffset)] = index
+				vdp.displaySurface.RasterizePixel(lineAddr, pixelOffset, index)
 			}
 			pixelOffset++
 			tileVal0 <<= 1
@@ -174,7 +175,7 @@ func (vdp *vdp) rasterizeBackground(lineAddr int, pixelOffset byte, tileData int
 
 func (vdp *vdp) clearBackground(lineAddr int, pixelOffset byte) {
 	for k := 0; k < 8; k++ {
-		vdp.displayData[lineAddr+int(pixelOffset)] = 0
+		vdp.displaySurface.RasterizePixel(lineAddr, pixelOffset, 0)
 		pixelOffset++
 	}
 }
@@ -184,7 +185,7 @@ func (vdp *vdp) rasterizeLine(line int) {
 
 	if (vdp.regs[1] & 64) == 0 {
 		for i := 0; i < 256; i++ {
-			vdp.displayData[lineAddr+i] = 0
+			vdp.displaySurface.RasterizePixel(lineAddr, byte(i), 0)
 		}
 		return
 	}
@@ -195,7 +196,7 @@ func (vdp *vdp) rasterizeLine(line int) {
 		effectiveLine -= 224
 	}
 	sprites := vdp.findSprites(line)
-	spritesLen := len(sprites)
+	spritesLen := len(*sprites)
 	spriteBase := 0
 	if (vdp.regs[6] & 4) != 0 {
 		spriteBase = 0x2000
@@ -225,7 +226,7 @@ func (vdp *vdp) rasterizeLine(line int) {
 		for j := 0; j < 8; j++ {
 			writtenTo := false
 			for k := 0; k < spritesLen; k++ {
-				sprite := sprites[k]
+				sprite := (*sprites)[k]
 				offset := xPos - sprite[0]
 				if offset < 0 || offset >= 8 {
 					continue
@@ -246,7 +247,7 @@ func (vdp *vdp) rasterizeLine(line int) {
 					vdp.status |= 0x20
 					break
 				}
-				vdp.displayData[lineAddr+int(pixelOffset)] = 16 + index
+				vdp.displaySurface.RasterizePixel(lineAddr, pixelOffset, 16 + index)
 				writtenTo = true
 			}
 			xPos++
@@ -259,8 +260,8 @@ func (vdp *vdp) rasterizeLine(line int) {
 
 	if (vdp.regs[0] & (1 << 5)) != 0 {
 		// Blank out left hand column.
-		for i := 0; i < 8; i++ {
-			vdp.displayData[lineAddr+i] = borderIndex
+		for i := byte(0); i < 8; i++ {
+			vdp.displaySurface.RasterizePixel(lineAddr, i, borderIndex)
 		}
 	}
 }
@@ -292,7 +293,7 @@ func (vdp *vdp) hblank() byte {
 	return needIrq
 }
 
-func newVDP(displayLoop DisplayLoop) *vdp {
+func newVDP(displaySurface DisplaySurface) *vdp {
 	vdp := &vdp{
 		vram:         make([]byte, 0x4000),
 		palette:      make([]byte, 32),
@@ -302,7 +303,7 @@ func newVDP(displayLoop DisplayLoop) *vdp {
 		regs:         make([]byte, 16),
 		writeRoutine: func(vdp *vdp, b byte) {},
 		readRoutine:  func(vdp *vdp) byte { return 0 },
-		displayLoop:  displayLoop,
+		displaySurface:  displaySurface,
 	}
 	vdp.reset()
 	return vdp

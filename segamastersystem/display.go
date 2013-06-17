@@ -11,16 +11,15 @@ const (
 	SCREEN_HEIGHT      = DISPLAY_HEIGHT + BORDER_TOP_BOTTOM*2
 )
 
-type DisplayData [DISPLAY_WIDTH * DISPLAY_HEIGHT]byte
-
 type PaletteValue struct {
 	index   byte
 	r, g, b byte
 }
 
-// Interface for rendering backend
-type DisplayLoop interface {
-	Display() chan<- *DisplayData
-	WritePalette() chan<- PaletteValue
-	UpdateBorder() chan<- byte
+// Interface for the rendering backend
+type DisplaySurface interface {
+	Render()
+	RasterizePixel(line int, pixelOffset, index byte)
+	UpdateBorder(index byte)
+	WritePalette(index, r, g, b byte)
 }

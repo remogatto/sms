@@ -42,9 +42,9 @@ type SMS struct {
 	Command  chan interface{}
 }
 
-func NewSMS(displayLoop DisplayLoop) *SMS {
+func NewSMS(displaySurface DisplaySurface) *SMS {
 	memory := NewMemory()
-	vdp := newVDP(displayLoop)
+	vdp := newVDP(displaySurface)
 	ports := NewPorts()
 	cpu := z80.NewZ80(memory, ports)
 
@@ -91,7 +91,7 @@ func (sms *SMS) LoadROM(fileName string) {
 	copy(sms.memory.romBank0, sms.memory.romBanks[sms.memory.maskedPage0][:])
 }
 
-func (sms *SMS) RenderFrame() *DisplayData {
+func (sms *SMS) Frame() DisplaySurface {
 	sms.vdp.status = 0
 	for (sms.vdp.status & 2) == 0 {
 		sms.cpu.Tstates = (sms.cpu.Tstates % TStatesPerFrame)
@@ -102,7 +102,7 @@ func (sms *SMS) RenderFrame() *DisplayData {
 			sms.cpu.Interrupt()
 		}
 	}
-	return &sms.vdp.displayData
+	return sms.vdp.displaySurface
 }
 
 func (sms *SMS) doOpcodes() {
