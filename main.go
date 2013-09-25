@@ -3,7 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/0xe2-0x9a-0x9b/Go-SDL/sdl"
+	"github.com/scottferg/Go-SDL/sdl"
 	"github.com/remogatto/application"
 	sms "github.com/remogatto/sms/segamastersystem"
 	"github.com/remogatto/z80"

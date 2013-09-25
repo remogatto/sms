@@ -1,7 +1,7 @@
 package z80
 
 import (
-	"github.com/0xe2-0x9a-0x9b/Go-SDL/sdl"
+	"github.com/scottferg/Go-SDL/sdl"
 	smslib "github.com/remogatto/sms/segamastersystem"
 	"log"
 	"testing"
